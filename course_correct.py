@@ -67,32 +67,30 @@ def marker_center(marker):
 def user_with_marker(marker):
     return next((x for x in users if x['markerId'] == marker), None)
 
+hand_raise_buffer_size = 12
+
 def track_hand_raise(person, hand_raised):
     t = clock()
     #print(person)
     userId = person["id"]
     entry = hand_raise_queue.get(userId)
-    if entry == None and not hand_raised:
-        return
     if entry == None:
-        entry = {"start_t": t, "user": person}
+        entry = {"user": person, "send_t": 0, "events": []}
         hand_raise_queue[userId] = entry
-    if hand_raised:
-        entry["last_raised_t"] = t
-    else:
-        entry["last_lowered_t"] = t
+    events = entry["events"]
+    events.insert(0, hand_raised)
+    while len(events) > hand_raise_buffer_size:
+        events.pop()
 
 def send_hand_raises(queue):
     # for now, only worry about hand raises, not lowering of hands
-    threshold_t = 10
-    send_queue = {k: v for k, v in queue.items() if clock() - v["start_t"] > threshold_t}
-    for key, entry in queue.items():
-        print('Diff %.1f' % (clock() - entry["start_t"]))
+    threshold_raises = 4
+    send_threshold_t = 20
+    send_queue = {k: v for k, v in queue.items() if v["events"].count(True) > threshold_raises and clock() - v["send_t"] > send_threshold_t}
     for key, entry in send_queue.items():
         user = entry["user"]
         print('%s raised hand!' % user["name"])
-    keep_queue = {k: v for k, v in queue.items() if clock() - v["start_t"] <= threshold_t}
-    return keep_queue
+        entry["send_t"] = clock()
 
 def filter_rects_by_min_height(rects, min_height):
     return list(filter(lambda r: r[3] - r[1] > min_height, rects))
@@ -212,7 +210,7 @@ if __name__ == '__main__':
 
         matching_dt = clock() - t
 
-        hand_raise_queue = send_hand_raises(hand_raise_queue)
+        send_hand_raises(hand_raise_queue)
 
         draw_str(vis, (20, 20), 'time cam: %.1f ms, face: %.1f ms, marker: %.1f, match: %.1f' % (cam_dt*1000, face_det_dt*1000, marker_det_dt*1000, matching_dt*1000))
 
