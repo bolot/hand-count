@@ -86,29 +86,24 @@ if __name__ == '__main__':
     cam = create_capture(video_src, fallback='synth:bg=../data/lena.jpg:noise=0.05')
 
     while True:
+        t = clock()
+
         ret, img = cam.read()
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         gray = cv2.equalizeHist(gray)
 
+        cam_dt = clock() - t
         t = clock()
+
         rects = detect(gray, face_cascade)
         vis = img.copy()
         draw_rects(vis, rects, (0, 255, 0))
-        """
-        if not nested.empty():
-            for x1, y1, x2, y2 in rects:
-                roi = gray[y1:y2, x1:x2]
-                vis_roi = vis[y1:y2, x1:x2]
-                subrects = detect(roi.copy(), nested)
-                draw_rects(vis_roi, subrects, (255, 0, 0))
-        """
 
-        """
-        rects = detect(gray, hand_cascade)
-        draw_rects(vis, rects, (0, 0, 255))
-        """
+        face_det_dt = clock() - t
+        t = clock()
 
         markers = cv2.aruco.detectMarkers(gray, ar_dictionary)
+
         # Find centers of the detected markers
         centers = list(map(lambda q: marker_center(q), markers[0]))
         marker_ids = markers[1] # list(map(lambda q: people[q]["name"], markers[1]))
@@ -121,6 +116,9 @@ if __name__ == '__main__':
             #print(centers)
             #print('Names:')
             #print(marker_ids)
+
+        marker_det_dt = clock() - t
+        t = clock()
 
         # Detect hands to left/right of faces
         for p in rects:
@@ -175,9 +173,9 @@ if __name__ == '__main__':
             #        cv2.line(vis, (face_centers[0][0], face_centers[0][1]), (p[0], p[1]), (255, 0, 0))
 
 
-        dt = clock() - t
+        matching_dt = clock() - t
 
-        draw_str(vis, (20, 20), 'time: %.1f ms' % (dt*1000))
+        draw_str(vis, (20, 20), 'time cam: %.1f ms, face: %.1f ms, marker: %.1f, match: %.1f' % (cam_dt*1000, face_det_dt*1000, marker_det_dt*1000, matching_dt*1000))
 
         cv2.imshow('facedetect', vis)
 
