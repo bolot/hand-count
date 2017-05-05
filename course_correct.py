@@ -24,6 +24,8 @@ from __future__ import print_function
 import numpy as np
 import cv2
 
+import time
+
 # local modules
 from video import create_capture
 from common import clock, draw_str
@@ -45,6 +47,8 @@ firebase = pyrebase.initialize_app(config)
 db = firebase.database()
 users = db.child("users").get()
 users = list(filter(lambda u: u != None, list(map(lambda u: u.val(), users.each()))))
+
+hand_raise_db = db.child("handRaises")
 
 hand_raise_queue = {}
 
@@ -91,6 +95,8 @@ def send_hand_raises(queue):
         user = entry["user"]
         print('%s raised hand!' % user["name"])
         entry["send_t"] = clock()
+        data = {"userId": user["id"], "startAt": int(time.time()*1000)}
+        hand_raise_db.push(data)
 
 def filter_rects_by_min_height(rects, min_height):
     return list(filter(lambda r: r[3] - r[1] > min_height, rects))
