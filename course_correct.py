@@ -46,6 +46,8 @@ db = firebase.database()
 users = db.child("users").get()
 users = list(filter(lambda u: u != None, list(map(lambda u: u.val(), users.each()))))
 
+hand_raise_queue = {}
+
 def detect(img, cascade):
     rects = cascade.detectMultiScale(img, scaleFactor=1.3, minNeighbors=4, minSize=(30, 30),
                                      flags=cv2.CASCADE_SCALE_IMAGE)
@@ -64,6 +66,36 @@ def marker_center(marker):
 
 def user_with_marker(marker):
     return next((x for x in users if x['markerId'] == marker), None)
+
+def track_hand_raise(person, hand_raised):
+    t = clock()
+    #print(person)
+    userId = person["id"]
+    entry = hand_raise_queue.get(userId)
+    if entry == None and not hand_raised:
+        return
+    if entry == None:
+        entry = {"start_t": t, "user": person}
+        hand_raise_queue[userId] = entry
+    if hand_raised:
+        entry["last_raised_t"] = t
+    else:
+        entry["last_lowered_t"] = t
+
+def send_hand_raises(queue):
+    # for now, only worry about hand raises, not lowering of hands
+    threshold_t = 10
+    send_queue = {k: v for k, v in queue.items() if clock() - v["start_t"] > threshold_t}
+    for key, entry in queue.items():
+        print('Diff %.1f' % (clock() - entry["start_t"]))
+    for key, entry in send_queue.items():
+        user = entry["user"]
+        print('%s raised hand!' % user["name"])
+    keep_queue = {k: v for k, v in queue.items() if clock() - v["start_t"] <= threshold_t}
+    return keep_queue
+
+def filter_rects_by_min_height(rects, min_height):
+    return list(filter(lambda r: r[3] - r[1] > min_height, rects))
 
 if __name__ == '__main__':
     import sys, getopt
@@ -124,20 +156,21 @@ if __name__ == '__main__':
         for p in rects:
             hand_raised = False
             x1, y1, x2, y2 = p
-            w = x2 - x1
-            h = y2 - y1
-            left_x1 = max(x1 - w*2, 0)
+            face_w = x2 - x1
+            face_h = y2 - y1
+            left_x1 = max(x1 - face_w*2, 0)
             left_x2 = x1
             right_x1 = x2
-            right_x2 = min(x2 + w*2, gray.shape[1])
+            right_x2 = min(x2 + face_w*2, gray.shape[1])
 
-            new_y1 = max(y1 - h*2, 0)
+            new_y1 = max(y1 - face_h*2, 0)
             new_y2 = y2
 
             x1, y1, x2, y2 = left_x1, new_y1, left_x2, new_y2
             roi = gray[y1:y2, x1:x2]
             vis_roi = vis[y1:y2, x1:x2]
             subrects = detect(roi.copy(), hand_cascade)
+            subrects = filter_rects_by_min_height(subrects, face_h*0.4)
             draw_rects(vis_roi, subrects, (255, 0, 0))
             if len(subrects) > 0:
                 hand_raised = True
@@ -147,11 +180,17 @@ if __name__ == '__main__':
             roi = gray[y1:y2, x1:x2]
             vis_roi = vis[y1:y2, x1:x2]
             subrects = detect(roi.copy(), hand_cascade)
+            subrects = filter_rects_by_min_height(subrects, face_h*0.4)
             draw_rects(vis_roi, subrects, (255, 0, 0))
             if len(subrects) > 0:
                 hand_raised = True
 
             x1, y1, x2, y2 = p
+
+            if hand_raised:
+                cv2.rectangle(vis, (x1, y1), (x2, y2), (255, 0, 255), 10)
+                draw_str(vis, (x1, y2+20), 'Hand is raised!')
+
             if markers_found:
                 c = (int((x1 + x2)/2), int((y1 + y2)/2))
                 distances = list(map(lambda q: (q[0] - c[0])**2 + (q[1] - c[1])**2, centers))
@@ -162,9 +201,7 @@ if __name__ == '__main__':
                 person = user_with_marker(closest_marker)
                 if person != None:
                     draw_str(vis, (x1, y2), person["name"])
-
-            if hand_raised:
-                draw_str(vis, (x1, y2+20), 'Hand is raised!')
+                    track_hand_raise(person, hand_raised)
 
             # Match markers and faces
             #face_centers = list(map(lambda q: [int((q[0] + q[2])/2), int((q[1] + q[3])/2)], rects))
@@ -174,6 +211,8 @@ if __name__ == '__main__':
 
 
         matching_dt = clock() - t
+
+        hand_raise_queue = send_hand_raises(hand_raise_queue)
 
         draw_str(vis, (20, 20), 'time cam: %.1f ms, face: %.1f ms, marker: %.1f, match: %.1f' % (cam_dt*1000, face_det_dt*1000, marker_det_dt*1000, matching_dt*1000))
 
