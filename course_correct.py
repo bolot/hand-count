@@ -28,24 +28,23 @@ import cv2
 from video import create_capture
 from common import clock, draw_str
 
-people = [
-    {
-        "markerId": 0,
-        "name": "Test Subject",
-    },
-    {
-        "markerId": 1,
-        "name": "Zack Simon",
-    },
-    {
-        "markerId": 2,
-        "name": "Jonathan Martin",
-    },
-    {
-        "markerId": 3,
-        "name": "Bolot Kerimbaev",
-    },
-]
+# firebase
+
+import pyrebase
+
+config = {
+  "apiKey": "",
+  "authDomain": "",
+  "databaseURL": "",
+  "projectId": "",
+  "storageBucket": "",
+}
+
+firebase = pyrebase.initialize_app(config)
+
+db = firebase.database()
+users = db.child("users").get()
+users = list(filter(lambda u: u != None, list(map(lambda u: u.val(), users.each()))))
 
 def detect(img, cascade):
     rects = cascade.detectMultiScale(img, scaleFactor=1.3, minNeighbors=4, minSize=(30, 30),
@@ -63,11 +62,12 @@ def marker_center(marker):
     q = marker[0]
     return [int((q[0][0] + q[1][0] + q[2][0] + q[3][0])/4), int((q[0][1] + q[1][1] + q[2][1] + q[3][1])/4)]
 
+def user_with_marker(marker):
+    return next((x for x in users if x['markerId'] == marker), None)
+
 if __name__ == '__main__':
     import sys, getopt
     print(__doc__)
-
-    print(people[3]["name"])
 
     args, video_src = getopt.getopt(sys.argv[1:], '', ['face-cascade=', 'hand-cascade='])
     try:
@@ -161,8 +161,9 @@ if __name__ == '__main__':
                 #print('Closest index: %d, name: %d' % (closest_idx, marker_ids[closest_idx]))
                 closest_marker = int(marker_ids[closest_idx])
                 #draw_str(vis, c, 'Marker %d' % closest_marker)
-                if closest_marker < len(people):
-                    draw_str(vis, (x1, y2), people[closest_marker]["name"])
+                person = user_with_marker(closest_marker)
+                if person != None:
+                    draw_str(vis, (x1, y2), person["name"])
 
             if hand_raised:
                 draw_str(vis, (x1, y2+20), 'Hand is raised!')
