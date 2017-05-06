@@ -135,7 +135,7 @@ if __name__ == '__main__':
         cam_dt = clock() - t
         t = clock()
 
-        rects = detect(gray, face_cascade, 100, 500)
+        rects = detect(gray, face_cascade, 80, 500)
         vis = img.copy()
         draw_rects(vis, rects, (0, 255, 0))
 
@@ -177,7 +177,7 @@ if __name__ == '__main__':
             x1, y1, x2, y2 = left_x1, new_y1, left_x2, new_y2
             roi = gray[y1:y2, x1:x2]
             vis_roi = vis[y1:y2, x1:x2]
-            subrects = detect(roi.copy(), hand_cascade, max(40, int(face_w*0.4)), max(200, int(face_w*0.8)))
+            subrects = detect(roi.copy(), hand_cascade, max(30, int(face_w*0.4)), max(200, int(face_w*0.8)))
             #subrects = filter_rects_by_min_height(subrects, face_h*0.4)
             draw_rects(vis_roi, subrects, (255, 0, 0))
             if len(subrects) > 0:
@@ -187,7 +187,7 @@ if __name__ == '__main__':
             x1, y1, x2, y2 = right_x1, new_y1, right_x2, new_y2
             roi = gray[y1:y2, x1:x2]
             vis_roi = vis[y1:y2, x1:x2]
-            subrects = detect(roi.copy(), hand_cascade, max(40, int(face_w*0.4)), max(200, int(face_w*0.8)))
+            subrects = detect(roi.copy(), hand_cascade, max(30, int(face_w*0.4)), max(200, int(face_w*0.8)))
             #subrects = filter_rects_by_min_height(subrects, face_h*0.4)
             draw_rects(vis_roi, subrects, (255, 0, 0))
             if len(subrects) > 0:
