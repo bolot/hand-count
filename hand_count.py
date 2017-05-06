@@ -73,7 +73,7 @@ def marker_center(marker):
 def user_with_marker(marker):
     return next((x for x in users if x['markerId'] == marker), None)
 
-hand_raise_buffer_size = 12
+hand_raise_buffer_size = 40
 
 def track_hand_raise(person, hand_raised):
     t = clock()
