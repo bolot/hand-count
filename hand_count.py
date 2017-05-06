@@ -48,8 +48,6 @@ db = firebase.database()
 users = db.child("users").get()
 users = list(filter(lambda u: u != None, list(map(lambda u: u.val(), users.each()))))
 
-hand_raise_db = db.child("handRaises")
-
 hand_raise_queue = {}
 
 def detect(img, cascade, minWidth, maxWidth):
@@ -95,9 +93,12 @@ def send_hand_raises(queue):
     threshold_raises = 4
     send_threshold_t = 20
     send_queue = {k: v for k, v in queue.items() if v["events"].count(True) > threshold_raises and clock() - v["send_t"] > send_threshold_t}
+    db = firebase.database()
+    hand_raise_db = db.child("handRaises")
     for key, entry in send_queue.items():
         user = entry["user"]
-        print('%s raised hand!' % user["name"])
+        markerId = user["markerId"]
+        print('%s raised hand! marker id %d' % (user["name"], markerId))
         entry["send_t"] = clock()
         data = {"userId": user["id"], "startAt": int(time.time()*1000)}
         hand_raise_db.push(data)
