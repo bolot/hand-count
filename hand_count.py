@@ -211,6 +211,11 @@ if __name__ == '__main__':
                 if person != None and closest_dist < face_w**2 * 25:
                     draw_str(vis, (x1, y2), person["name"])
                     track_hand_raise(person, hand_raised)
+                    user = db.child("/users/" + str(person["id"])).get()
+                    lastPage = user.val().get("pdfStat")
+                    if lastPage is not None:
+                        draw_str(vis, (x1, y2+40), 'Page: %s' % lastPage["pageLabel"])
+
 
             # Match markers and faces
             #face_centers = list(map(lambda q: [int((q[0] + q[2])/2), int((q[1] + q[3])/2)], rects))
