@@ -203,12 +203,12 @@ if __name__ == '__main__':
             if markers_found:
                 c = (int((x1 + x2)/2), int((y1 + y2)/2))
                 distances = list(map(lambda q: (q[0] - c[0])**2 + (q[1] - c[1])**2, centers))
-                val, closest_idx = min((val, idx) for (idx, val) in enumerate(distances))
+                closest_dist, closest_idx = min((val, idx) for (idx, val) in enumerate(distances))
                 #print('Closest index: %d, name: %d' % (closest_idx, marker_ids[closest_idx]))
                 closest_marker = int(marker_ids[closest_idx])
                 #draw_str(vis, c, 'Marker %d' % closest_marker)
                 person = user_with_marker(closest_marker)
-                if person != None:
+                if person != None and closest_dist < face_w**2 * 25:
                     draw_str(vis, (x1, y2), person["name"])
                     track_hand_raise(person, hand_raised)
 
