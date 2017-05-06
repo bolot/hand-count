@@ -4,7 +4,7 @@
 Hand raising detection
 
 USAGE:
-    course_correction.py [--face-cascade <cascade_fn>] [--hand-cascade <cascade_fn>] [<video_source>]
+    hand_count.py [--face-cascade <cascade_fn>] [--hand-cascade <cascade_fn>] [<video_source>]
 '''
 
 # hand detection added on top of OpenCV face detection sample using haar cascades
